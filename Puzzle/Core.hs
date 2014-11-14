@@ -37,15 +37,15 @@ type Elem e l = (Enum e, Bounded e, HOccurs (E e) (HList (EList l)))
 
 data Assignment l = Assignment [HList (EList l)]
 
-class Generate l where
+class Problem l where
   generate :: (MonadState s m, HasSAT s) => m (Assignment l)
   decode' :: Solution -> HList (EList l) -> Maybe (HList l)
 
-instance Generate '[] where
+instance Problem '[] where
   generate = return $ Assignment (repeat HNil)
   decode' _ _ = return HNil
 
-instance (Enum e, Bounded e, Generate l) => Generate (e ': l) where
+instance (Enum e, Bounded e, Problem l) => Problem (e ': l) where
   generate = do
     let values = [minBound .. maxBound]
         count = length values
@@ -60,7 +60,7 @@ instance (Enum e, Bounded e, Generate l) => Generate (e ': l) where
     l' = decode' sol l
   decode' _ _ = Nothing
 
-instance Generate l => Decoding (Assignment l) where
+instance Problem l => Decoding (Assignment l) where
   type Decoded (Assignment l) = [HList l]
   decode sol (Assignment ls) = mapM (decode' sol) ls
 

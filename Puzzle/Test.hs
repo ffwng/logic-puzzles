@@ -63,7 +63,7 @@ is2 f a1 a2 = Test $ do
     values = filter (uncurry f)
              $ liftA2 (,) [minBound .. maxBound] [minBound .. maxBound]
 
-solve :: (Generate l, MonadIO m) => Test l -> m (Maybe [HList l])
+solve :: (Problem l, MonadIO m) => Test l -> m (Maybe [HList l])
 solve test = liftM snd $ solveWith minisat $ do
   problem <- generate
   assert $ runReader (runTest test) problem
