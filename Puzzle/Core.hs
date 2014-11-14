@@ -1,17 +1,17 @@
 {-# LANGUAGE DataKinds, KindSignatures, TypeOperators, TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts, ConstraintKinds #-}
-module Puzzle2 where
+module Puzzle.Core where
 
-import Prelude hiding (any, (&&))
+import Prelude hiding (any, all, (&&))
 
 import Ersatz
 import Data.HList
-import Data.List hiding (any)
+import Data.List hiding (any, all)
 import GHC.Generics
 import Control.Applicative
 import Control.Monad.State
-import Control.Monad.Reader
+import Control.Arrow ((&&&))
 
 data E e = E Bit3
          deriving (Show, Typeable, Generic)
@@ -33,6 +33,7 @@ type family EList (a :: [*]) :: [*] where
   EList '[] = '[]
   EList (e ': l) = E e ': EList l
 
+type Elem e l = (Enum e, Bounded e, HOccurs (E e) (HList (EList l)))
 
 data Assignment l = Assignment [HList (EList l)]
 
@@ -78,44 +79,5 @@ orderedPairs l = do
   return (a, b)
 
 
-type Test l m = ReaderT (Assignment l) (StateT SAT m)
-
-type Elem e l = (Enum e, Bounded e, HOccurs (E e) (HList (EList l)))
-
-is :: forall l m e r.
-      (Monad m, Elem e l, Elem r l)
-      => (r -> Bool) -> e -> Test l m ()
-is f e = do
-  Assignment ls <- ask
-  forM_ ls $ \l -> do
-    let v = hOccurs l :: E e
-        r = hOccurs l :: E r
-    assert $ v === encode e ==> satisfies f r
-
-is2 :: forall l m e1 e2 r1 r2.
-       (Monad m, Elem e1 l, Elem e2 l, Elem r1 l, Elem r2 l)
-        => (r1 -> r2 -> Bool) -> e1 -> e2 -> Test l m ()
-is2 f e1 e2 = do
-  Assignment ls <- ask
-  forM_ (liftA2 (,) ls ls) $ \(l1, l2) -> do
-    let v1 = hOccurs l1 :: E e1
-        r1 = hOccurs l1 :: E r1
-        v2 = hOccurs l2 :: E e2
-        r2 = hOccurs l2 :: E r2
-    assert $ v1 === encode e1 && v2 === encode e2 ==> satisfies2 f r1 r2
-
-satisfies :: (Enum a, Bounded a) => (a -> Bool) -> E a -> Bit
-satisfies f a = any (\l -> a === encode l) $ filter f [minBound .. maxBound]
-
-satisfies2 :: (Enum a, Bounded a, Enum b, Bounded b)
-              => (a -> b -> Bool) -> E a -> E b -> Bit
-satisfies2 f a1 a2 = any (\(l1,l2) -> a1 === encode l1 && a2 === encode l2)
-                     $ filter (uncurry f)
-                     $ liftA2 (,) [minBound .. maxBound] [minBound .. maxBound]
-
-
-solve :: (Generate l, MonadIO m)
-         => Test l m () -> m (Maybe [HList l])
-solve test = liftM snd $ solveWith minisat $ do
-  problem <- generate
-  runReaderT (test >> ask) problem
+connect :: (Elem a l, Elem b l) => Assignment l -> (E a -> E b -> Bit) -> Bit
+connect (Assignment l) f = all (uncurry f) $ map (hOccurs &&& hOccurs) l
