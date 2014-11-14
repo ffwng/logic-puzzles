@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 module Main where
 
-import Puzzle
+import Puzzle2
 
 data Haus = Rot | Gruen | Weiß | Gelb | Blau
           deriving (Show, Eq, Enum, Bounded)
@@ -30,7 +30,7 @@ rechts p1 p2 = links p2 p1
 neben :: Pos -> Pos -> Bool
 neben p1 p2 = links p1 p2 || rechts p1 p2
 
-test :: Test '[Pos, Haus, Land, Tier, Trank, Zigarette] ()
+test :: Test '[Pos, Haus, Land, Tier, Trank, Zigarette] IO ()
 test = do
   is (== England) Rot
   is (== Hund) Spanien
@@ -48,4 +48,4 @@ test = do
   is2 neben Norwegen Blau
   
 main :: IO ()
-main = print $ solutions test
+main = solve test >>= print
