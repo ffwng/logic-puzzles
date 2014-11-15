@@ -5,7 +5,7 @@ module Puzzle.Test where
 
 import Prelude hiding (any, all, (&&), (||), not)
 
-import Data.HList
+import Data.HList hiding (apply)
 import Control.Applicative
 import Control.Monad.Reader
 import Ersatz
@@ -17,6 +17,9 @@ newtype TestM l b = Test { runTest :: Reader (Assignment l) b }
 
 type Test l = TestM l Bit
 
+apply :: Assignment l -> TestM l b -> b
+apply p t = runReader (runTest t) p
+
 instance Boolean b => Boolean (TestM l b) where
   bool = return . bool
   true = return true
@@ -26,10 +29,12 @@ instance Boolean b => Boolean (TestM l b) where
   (==>) = liftM2 (==>)
   not = fmap not
 
-  all f l = Test . reader $ \r -> all ((\t -> runReader (runTest t) r) . f) l
-  any f l = Test . reader $ \r -> any ((\t -> runReader (runTest t) r) . f) l
+  all f l = Test . reader $ \r -> all (apply r . f) l
+  any f l = Test . reader $ \r -> any (apply r . f) l
 
   xor = liftM2 xor
+
+  choose f t b = Test . reader $ \r -> choose (apply r f) (apply r t) (apply r b)
 
 -- is a b === isP (== a) b
 is :: (Elem a l, Elem b l) => a -> b -> Test l
