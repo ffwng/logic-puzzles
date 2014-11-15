@@ -1,5 +1,3 @@
-{-# LANGUAGE DataKinds, KindSignatures, TypeOperators, TypeFamilies #-}
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts, ConstraintKinds, GeneralizedNewtypeDeriving #-}
 module Puzzle.Test where
 
